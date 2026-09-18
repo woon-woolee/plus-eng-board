@@ -10,6 +10,7 @@
   --mk-bg:#DFF3EA; --mk-line:#7FC9AA; --mk-tx:#0B6B4A;
   --off-bg:#FBE9E7; --off-line:#E0A69E; --off-tx:#A8352A;
   --nt-bg:#FCEEDA; --nt-line:#E8C284; --nt-tx:#8A5410;
+  --eng:#D62828; --eng-bg:#FDE4E4;   /* 영어 시험일 — 빨강 */
   --sh-1:0 1px 2px rgba(17,24,35,.05);
   --sh-2:0 1px 3px rgba(17,24,35,.06),0 10px 28px -12px rgba(17,24,35,.16);
 }
@@ -21,6 +22,7 @@
   --mk-bg:#12332A; --mk-line:#2F6A53; --mk-tx:#8FDCBC;
   --off-bg:#32211F; --off-line:#6B403A; --off-tx:#E9A79E;
   --nt-bg:#33260F; --nt-line:#5E4820; --nt-tx:#E7BE7E;
+  --eng:#FF6B6B; --eng-bg:#3D1C1E;
   --sh-1:0 1px 2px rgba(0,0,0,.4);
   --sh-2:0 1px 3px rgba(0,0,0,.5),0 10px 28px -12px rgba(0,0,0,.6);
 }}
@@ -32,6 +34,7 @@
   --mk-bg:#12332A; --mk-line:#2F6A53; --mk-tx:#8FDCBC;
   --off-bg:#32211F; --off-line:#6B403A; --off-tx:#E9A79E;
   --nt-bg:#33260F; --nt-line:#5E4820; --nt-tx:#E7BE7E;
+  --eng:#FF6B6B; --eng-bg:#3D1C1E;
   --sh-1:0 1px 2px rgba(0,0,0,.4);
   --sh-2:0 1px 3px rgba(0,0,0,.5),0 10px 28px -12px rgba(0,0,0,.6);
 }
@@ -98,6 +101,10 @@ button.cl:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .mi.mk{background:var(--mk-bg);color:var(--mk-tx)}
 .mi.off{background:var(--off-bg);color:var(--off-tx)}
 .mi.nt2{background:var(--nt-bg);color:var(--nt-tx)}
+/* 영어 시험일 — 빨간색으로 눈에 띄게 */
+.mi.eng{background:var(--eng);color:#fff}
+.mc.engday{background:var(--eng-bg);border-color:var(--eng);box-shadow:inset 0 0 0 2px var(--eng)}
+.c.eng{--bc:var(--eng);background:var(--eng-bg);border-color:var(--eng)}
 
 .form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px}
 .fld{display:flex;flex-direction:column;gap:4px}
@@ -155,6 +162,10 @@ footer{font-size:12px;color:var(--ink-3);line-height:1.7;border-top:1px solid va
 .col{position:relative;border-left:1px solid var(--line)}
 .col.dayoff{background:repeating-linear-gradient(45deg,transparent,transparent 7px,var(--off-bg) 7px,var(--off-bg) 14px)}
 .col.today{background:linear-gradient(var(--panel-3),var(--panel-3))}
+.col.engday,.col.today.engday{background:var(--eng-bg)}
+.gh.engday{color:var(--eng)}
+.gh .ex.eng{color:#fff;background:var(--eng);border-color:var(--eng);font-size:10.5px}
+.sheet .tag.eng{background:var(--eng);border-color:var(--eng);color:#fff}
 .hr{position:absolute;left:0;right:0;border-top:1px solid var(--line);pointer-events:none}
 .hr.half{border-top-style:dotted;opacity:.5}
 .blk{position:absolute;left:3px;right:3px;border-radius:9px;padding:5px 7px;overflow:hidden;
@@ -240,6 +251,7 @@ footer{font-size:12px;color:var(--ink-3);line-height:1.7;border-top:1px solid va
       <span><i style="background:var(--nt-bg);border-color:var(--nt-line);border-style:dashed"></i>강사 피드백</span>
       <span><i style="background:var(--off-bg);border-color:var(--off-line)"></i>휴강</span>
       <span><i style="background:var(--nt-bg);border-color:var(--nt-line)"></i>시험·공지</span>
+      <span><i style="background:var(--eng);border-color:var(--eng)"></i>영어 시험일</span>
       <span style="margin-left:auto">칸을 누르면 크게 볼 수 있습니다</span>
     </div>
   </div>
@@ -278,6 +290,7 @@ const md=s=>{const[,m,d]=s.split("-");return +m+"/"+ +d};
 const dow=s=>DAYS[new Date(s+"T12:00:00").getDay()];
 const TODAY=iso(new Date());
 const KN={mk:"보강",off:"휴강",nt2:"공지"};
+const isEng=i=>i&&i.k==="nt2"&&/영어 시험일/.test(i.n||"");   // 영어 시험일 공지
 function dday(d){const q=Math.round((new Date(d)-new Date(TODAY))/864e5);
   return q>0?`D-${q}`:(q===0?"오늘":"지남");}
 let ITEMS=[], CLS="전체";
@@ -344,17 +357,18 @@ function week(){
   ITEMS.forEach(i=>{ if(i.k==="gfo"||!days.includes(i.d)||!clsMatch(i)) return;
     if(i.k==="off") offd[i.d]=(i.n||"휴강").split(" — ")[0];
     if(i.k==="nt2") (exd[i.d]=exd[i.d]||[]).push(i); });
+  const engd={}; Object.keys(exd).forEach(d=>{ if(exd[d].some(isEng)) engd[d]=1; });
   $("ghead").innerHTML=`<div></div>`+days.map((d,k)=>{
     const cl=k===6?" sun":(k===5?" sat":"")+(d===TODAY?" now":"");
-    return `<div class="gh${cl}">${WD[k]}<span class="dn">${md(d)}</span>`
+    return `<div class="gh${cl}${engd[d]?" engday":""}">${WD[k]}<span class="dn">${md(d)}</span>`
       +(offd[d]?`<span class="hd2">${esc(offd[d])}</span>`:"")
-      +(exd[d]?exd[d].map(i=>`<span class="ex" data-nt="${esc(i.id)}">${esc((i.n||"").split("  ")[0])}</span>`).join(""):"")
+      +(exd[d]?exd[d].map(i=>`<span class="ex${isEng(i)?" eng":""}" data-nt="${esc(i.id)}">${esc((i.n||"").split("  ")[0])}</span>`).join(""):"")
       +`</div>`}).join("");
   let ax=`<div class="ax" style="height:${H}px">`;
   for(let m=Math.ceil(T0/60)*60;m<=T1;m+=60) ax+=`<span class="axl" style="top:${(m-T0)*PX}px">${fmt(m)}</span>`;
   ax+=`</div>`;
   const cols=days.map((d,k)=>{
-    let h=`<div class="col${offd[d]?" dayoff":""}${d===TODAY?" today":""}" style="height:${H}px">`;
+    let h=`<div class="col${offd[d]?" dayoff":""}${d===TODAY?" today":""}${engd[d]?" engday":""}" style="height:${H}px">`;
     for(let m=Math.ceil(T0/30)*30;m<=T1;m+=30)
       h+=`<div class="hr${m%60?" half":""}" style="top:${(m-T0)*PX}px"></div>`;
     B.filter(o=>o.d===d).forEach((o,ix)=>{
@@ -375,12 +389,12 @@ function week(){
   });
   $("ghead").querySelectorAll("[data-nt]").forEach(el=>el.onclick=()=>{
     const i=ITEMS.find(x=>x.id===el.dataset.nt); if(!i) return;
-    open_({kind:"nt2",t:i.t||i.n,c:i.c,d:i.d,a:null,b:null,r:"",n:i.n});});
+    open_({kind:isEng(i)?"eng":"nt2",t:i.t||i.n,c:i.c,d:i.d,a:null,b:null,r:"",n:i.n});});
   Object.keys(offd).forEach(()=>{});
 }
 /* 크게 보기 */
 function open_(o){
-  const KT={cls:"정규 수업",gf:"강사 피드백",mk:"보강",off:"휴강",nt2:"공지"};
+  const KT={cls:"정규 수업",gf:"강사 피드백",mk:"보강",off:"휴강",nt2:"공지",eng:"영어 시험일"};
   $("shK").className="tag "+o.kind; $("shK").textContent=KT[o.kind]||"";
   $("shT").textContent=o.t||o.c;
   $("shTime").textContent=o.a!=null?`${fmt(o.a)} ~ ${fmt(o.b)}`:"시간 없음";
@@ -416,8 +430,8 @@ function paint(){
   week(); month();
 }
 function card(i){
-  return `<article class="c ${i.k}${i.d<TODAY?" past":""}">`
-    +`<div class="hd"><span class="kd">${KN[i.k]}</span><b>${esc(i.t||i.c)}</b><span class="dd">${dday(i.d)}</span></div>`
+  return `<article class="c ${i.k}${isEng(i)?" eng":""}${i.d<TODAY?" past":""}">`
+    +`<div class="hd"><span class="kd">${isEng(i)?"영어 시험":KN[i.k]}</span><b>${esc(i.t||i.c)}</b><span class="dd">${dday(i.d)}</span></div>`
     +(i.t&&i.t!==i.c?`<span class="rm" style="font-size:11.5px;color:var(--ink-3)">${esc(i.c)}</span>`:"")
     +`<span class="when">${md(i.d)}(${dow(i.d)})${i.a!=null?` ${fmt(i.a)}~${fmt(i.b)}`:""}</span>`
     +(i.r?`<span class="rm">${esc(i.r)}</span>`:"")
@@ -430,16 +444,16 @@ function month(){
   for(let k=0;k<42;k++){
     const dt=addD(first,k), d=iso(dt), inM=dt.getMonth()===mo, hol=DATA.HOL[d];
     const its=ITEMS.filter(i=>!["gfo","cl","clo"].includes(i.k)&&i.d===d&&clsMatch(i));
-    h+=`<div class="mc${inM?"":" out"}${d===TODAY?" today":""}"><span class="d">${dt.getDate()}</span>`
+    h+=`<div class="mc${inM?"":" out"}${d===TODAY?" today":""}${its.some(isEng)?" engday":""}"><span class="d">${dt.getDate()}</span>`
       +(hol?`<span class="h">${hol}</span>`:"")
       +its.map(i=>{const lab=i.k==="nt2"?((i.n||"").split(/\s/)[0]||i.c):(i.t||(i.c==="전체"?KN[i.k]:i.c));
-          return `<div class="mi ${i.k}" data-m="${esc(i.id)}">${i.a!=null?fmt(i.a)+" ":""}${esc(lab)}</div>`}).join("")
+          return `<div class="mi ${i.k}${isEng(i)?" eng":""}" data-m="${esc(i.id)}">${i.a!=null?fmt(i.a)+" ":""}${esc(lab)}</div>`}).join("")
       +`</div>`;
   }
   $("mgrid").innerHTML=h;
   $("mgrid").querySelectorAll("[data-m]").forEach(el=>el.onclick=()=>{
     const i=ITEMS.find(x=>x.id===el.dataset.m); if(!i) return;
-    open_({kind:i.k,t:i.t||i.c,c:i.c,d:i.d,a:i.a,b:i.b,r:i.r,n:i.n||""});});
+    open_({kind:isEng(i)?"eng":i.k,t:i.t||i.c,c:i.c,d:i.d,a:i.a,b:i.b,r:i.r,n:i.n||""});});
 }
 function setView(v){VIEW=v;
   $("seg").querySelectorAll("[data-v]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===v));
@@ -498,7 +512,7 @@ $("tdy").onclick=()=>{WK=mondayOf(new Date());paint();setView(VIEW)};
     el.addEventListener("touchcancel",()=>{live=false},{passive:true});
   });
 })();
-$("upd").textContent="마지막 갱신 9월 18일 22:36";
+$("upd").textContent="마지막 갱신 9월 18일 22:53";
 paint();
 </script>
 <script id="tpl" type="text/plain"><!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]:not([hidden=until-found]){display:none!important}</style></head><body>
@@ -513,6 +527,7 @@ paint();
   --mk-bg:#DFF3EA; --mk-line:#7FC9AA; --mk-tx:#0B6B4A;
   --off-bg:#FBE9E7; --off-line:#E0A69E; --off-tx:#A8352A;
   --nt-bg:#FCEEDA; --nt-line:#E8C284; --nt-tx:#8A5410;
+  --eng:#D62828; --eng-bg:#FDE4E4;   /* 영어 시험일 — 빨강 */
   --sh-1:0 1px 2px rgba(17,24,35,.05);
   --sh-2:0 1px 3px rgba(17,24,35,.06),0 10px 28px -12px rgba(17,24,35,.16);
 }
@@ -524,6 +539,7 @@ paint();
   --mk-bg:#12332A; --mk-line:#2F6A53; --mk-tx:#8FDCBC;
   --off-bg:#32211F; --off-line:#6B403A; --off-tx:#E9A79E;
   --nt-bg:#33260F; --nt-line:#5E4820; --nt-tx:#E7BE7E;
+  --eng:#FF6B6B; --eng-bg:#3D1C1E;
   --sh-1:0 1px 2px rgba(0,0,0,.4);
   --sh-2:0 1px 3px rgba(0,0,0,.5),0 10px 28px -12px rgba(0,0,0,.6);
 }}
@@ -535,6 +551,7 @@ paint();
   --mk-bg:#12332A; --mk-line:#2F6A53; --mk-tx:#8FDCBC;
   --off-bg:#32211F; --off-line:#6B403A; --off-tx:#E9A79E;
   --nt-bg:#33260F; --nt-line:#5E4820; --nt-tx:#E7BE7E;
+  --eng:#FF6B6B; --eng-bg:#3D1C1E;
   --sh-1:0 1px 2px rgba(0,0,0,.4);
   --sh-2:0 1px 3px rgba(0,0,0,.5),0 10px 28px -12px rgba(0,0,0,.6);
 }
@@ -601,6 +618,10 @@ button.cl:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .mi.mk{background:var(--mk-bg);color:var(--mk-tx)}
 .mi.off{background:var(--off-bg);color:var(--off-tx)}
 .mi.nt2{background:var(--nt-bg);color:var(--nt-tx)}
+/* 영어 시험일 — 빨간색으로 눈에 띄게 */
+.mi.eng{background:var(--eng);color:#fff}
+.mc.engday{background:var(--eng-bg);border-color:var(--eng);box-shadow:inset 0 0 0 2px var(--eng)}
+.c.eng{--bc:var(--eng);background:var(--eng-bg);border-color:var(--eng)}
 
 .form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px}
 .fld{display:flex;flex-direction:column;gap:4px}
@@ -658,6 +679,10 @@ footer{font-size:12px;color:var(--ink-3);line-height:1.7;border-top:1px solid va
 .col{position:relative;border-left:1px solid var(--line)}
 .col.dayoff{background:repeating-linear-gradient(45deg,transparent,transparent 7px,var(--off-bg) 7px,var(--off-bg) 14px)}
 .col.today{background:linear-gradient(var(--panel-3),var(--panel-3))}
+.col.engday,.col.today.engday{background:var(--eng-bg)}
+.gh.engday{color:var(--eng)}
+.gh .ex.eng{color:#fff;background:var(--eng);border-color:var(--eng);font-size:10.5px}
+.sheet .tag.eng{background:var(--eng);border-color:var(--eng);color:#fff}
 .hr{position:absolute;left:0;right:0;border-top:1px solid var(--line);pointer-events:none}
 .hr.half{border-top-style:dotted;opacity:.5}
 .blk{position:absolute;left:3px;right:3px;border-radius:9px;padding:5px 7px;overflow:hidden;
@@ -743,6 +768,7 @@ footer{font-size:12px;color:var(--ink-3);line-height:1.7;border-top:1px solid va
       <span><i style="background:var(--nt-bg);border-color:var(--nt-line);border-style:dashed"></i>강사 피드백</span>
       <span><i style="background:var(--off-bg);border-color:var(--off-line)"></i>휴강</span>
       <span><i style="background:var(--nt-bg);border-color:var(--nt-line)"></i>시험·공지</span>
+      <span><i style="background:var(--eng);border-color:var(--eng)"></i>영어 시험일</span>
       <span style="margin-left:auto">칸을 누르면 크게 볼 수 있습니다</span>
     </div>
   </div>
@@ -781,6 +807,7 @@ const md=s=>{const[,m,d]=s.split("-");return +m+"/"+ +d};
 const dow=s=>DAYS[new Date(s+"T12:00:00").getDay()];
 const TODAY=iso(new Date());
 const KN={mk:"보강",off:"휴강",nt2:"공지"};
+const isEng=i=>i&&i.k==="nt2"&&/영어 시험일/.test(i.n||"");   // 영어 시험일 공지
 function dday(d){const q=Math.round((new Date(d)-new Date(TODAY))/864e5);
   return q>0?`D-${q}`:(q===0?"오늘":"지남");}
 let ITEMS=[], CLS="전체";
@@ -847,17 +874,18 @@ function week(){
   ITEMS.forEach(i=>{ if(i.k==="gfo"||!days.includes(i.d)||!clsMatch(i)) return;
     if(i.k==="off") offd[i.d]=(i.n||"휴강").split(" — ")[0];
     if(i.k==="nt2") (exd[i.d]=exd[i.d]||[]).push(i); });
+  const engd={}; Object.keys(exd).forEach(d=>{ if(exd[d].some(isEng)) engd[d]=1; });
   $("ghead").innerHTML=`<div></div>`+days.map((d,k)=>{
     const cl=k===6?" sun":(k===5?" sat":"")+(d===TODAY?" now":"");
-    return `<div class="gh${cl}">${WD[k]}<span class="dn">${md(d)}</span>`
+    return `<div class="gh${cl}${engd[d]?" engday":""}">${WD[k]}<span class="dn">${md(d)}</span>`
       +(offd[d]?`<span class="hd2">${esc(offd[d])}</span>`:"")
-      +(exd[d]?exd[d].map(i=>`<span class="ex" data-nt="${esc(i.id)}">${esc((i.n||"").split("  ")[0])}</span>`).join(""):"")
+      +(exd[d]?exd[d].map(i=>`<span class="ex${isEng(i)?" eng":""}" data-nt="${esc(i.id)}">${esc((i.n||"").split("  ")[0])}</span>`).join(""):"")
       +`</div>`}).join("");
   let ax=`<div class="ax" style="height:${H}px">`;
   for(let m=Math.ceil(T0/60)*60;m<=T1;m+=60) ax+=`<span class="axl" style="top:${(m-T0)*PX}px">${fmt(m)}</span>`;
   ax+=`</div>`;
   const cols=days.map((d,k)=>{
-    let h=`<div class="col${offd[d]?" dayoff":""}${d===TODAY?" today":""}" style="height:${H}px">`;
+    let h=`<div class="col${offd[d]?" dayoff":""}${d===TODAY?" today":""}${engd[d]?" engday":""}" style="height:${H}px">`;
     for(let m=Math.ceil(T0/30)*30;m<=T1;m+=30)
       h+=`<div class="hr${m%60?" half":""}" style="top:${(m-T0)*PX}px"></div>`;
     B.filter(o=>o.d===d).forEach((o,ix)=>{
@@ -878,12 +906,12 @@ function week(){
   });
   $("ghead").querySelectorAll("[data-nt]").forEach(el=>el.onclick=()=>{
     const i=ITEMS.find(x=>x.id===el.dataset.nt); if(!i) return;
-    open_({kind:"nt2",t:i.t||i.n,c:i.c,d:i.d,a:null,b:null,r:"",n:i.n});});
+    open_({kind:isEng(i)?"eng":"nt2",t:i.t||i.n,c:i.c,d:i.d,a:null,b:null,r:"",n:i.n});});
   Object.keys(offd).forEach(()=>{});
 }
 /* 크게 보기 */
 function open_(o){
-  const KT={cls:"정규 수업",gf:"강사 피드백",mk:"보강",off:"휴강",nt2:"공지"};
+  const KT={cls:"정규 수업",gf:"강사 피드백",mk:"보강",off:"휴강",nt2:"공지",eng:"영어 시험일"};
   $("shK").className="tag "+o.kind; $("shK").textContent=KT[o.kind]||"";
   $("shT").textContent=o.t||o.c;
   $("shTime").textContent=o.a!=null?`${fmt(o.a)} ~ ${fmt(o.b)}`:"시간 없음";
@@ -919,8 +947,8 @@ function paint(){
   week(); month();
 }
 function card(i){
-  return `<article class="c ${i.k}${i.d<TODAY?" past":""}">`
-    +`<div class="hd"><span class="kd">${KN[i.k]}</span><b>${esc(i.t||i.c)}</b><span class="dd">${dday(i.d)}</span></div>`
+  return `<article class="c ${i.k}${isEng(i)?" eng":""}${i.d<TODAY?" past":""}">`
+    +`<div class="hd"><span class="kd">${isEng(i)?"영어 시험":KN[i.k]}</span><b>${esc(i.t||i.c)}</b><span class="dd">${dday(i.d)}</span></div>`
     +(i.t&&i.t!==i.c?`<span class="rm" style="font-size:11.5px;color:var(--ink-3)">${esc(i.c)}</span>`:"")
     +`<span class="when">${md(i.d)}(${dow(i.d)})${i.a!=null?` ${fmt(i.a)}~${fmt(i.b)}`:""}</span>`
     +(i.r?`<span class="rm">${esc(i.r)}</span>`:"")
@@ -933,16 +961,16 @@ function month(){
   for(let k=0;k<42;k++){
     const dt=addD(first,k), d=iso(dt), inM=dt.getMonth()===mo, hol=DATA.HOL[d];
     const its=ITEMS.filter(i=>!["gfo","cl","clo"].includes(i.k)&&i.d===d&&clsMatch(i));
-    h+=`<div class="mc${inM?"":" out"}${d===TODAY?" today":""}"><span class="d">${dt.getDate()}</span>`
+    h+=`<div class="mc${inM?"":" out"}${d===TODAY?" today":""}${its.some(isEng)?" engday":""}"><span class="d">${dt.getDate()}</span>`
       +(hol?`<span class="h">${hol}</span>`:"")
       +its.map(i=>{const lab=i.k==="nt2"?((i.n||"").split(/\s/)[0]||i.c):(i.t||(i.c==="전체"?KN[i.k]:i.c));
-          return `<div class="mi ${i.k}" data-m="${esc(i.id)}">${i.a!=null?fmt(i.a)+" ":""}${esc(lab)}</div>`}).join("")
+          return `<div class="mi ${i.k}${isEng(i)?" eng":""}" data-m="${esc(i.id)}">${i.a!=null?fmt(i.a)+" ":""}${esc(lab)}</div>`}).join("")
       +`</div>`;
   }
   $("mgrid").innerHTML=h;
   $("mgrid").querySelectorAll("[data-m]").forEach(el=>el.onclick=()=>{
     const i=ITEMS.find(x=>x.id===el.dataset.m); if(!i) return;
-    open_({kind:i.k,t:i.t||i.c,c:i.c,d:i.d,a:i.a,b:i.b,r:i.r,n:i.n||""});});
+    open_({kind:isEng(i)?"eng":i.k,t:i.t||i.c,c:i.c,d:i.d,a:i.a,b:i.b,r:i.r,n:i.n||""});});
 }
 function setView(v){VIEW=v;
   $("seg").querySelectorAll("[data-v]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===v));
@@ -1001,7 +1029,7 @@ $("tdy").onclick=()=>{WK=mondayOf(new Date());paint();setView(VIEW)};
     el.addEventListener("touchcancel",()=>{live=false},{passive:true});
   });
 })();
-$("upd").textContent="마지막 갱신 9월 18일 22:36";
+$("upd").textContent="마지막 갱신 9월 18일 22:53";
 paint();
 «/S»
 <script id="tpl" type="text/plain">%%TPL%%«/S»
